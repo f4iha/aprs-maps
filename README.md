@@ -1,6 +1,6 @@
-#APRS MAPS
+# APRS MAPS
 
-This is simple visualisation system for your APRS frames. 
+This is simple visualisation system for your APRS frames.
 
 ![demo-aprs-maps](docs/demo-aprs-maps.png)
 
@@ -36,6 +36,8 @@ python3 convert.py
 ```
 
 An output will provide all the details. The script will parse the `file_to_parse.txt`, extract the useful informations which will be write in json files (frames are grouped in a json file by day) and then archives into the `archives` folder with the date as filename.
+
+NB: the script is parsing the HTML of aprs.fi to retrieve the GPS coordinates of a unknow relay.
 
 ## Webpage with the maps
 
