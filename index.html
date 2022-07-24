@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="fr">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta http-equiv="X-UA-Compatible" content="ie=edge">
+        <title>OpenStreetMap</title>
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.5.1/dist/leaflet.css" integrity="sha512-xwE/Az9zrjBIphAcBb3F6JVqxf46+CDLwfLMHloNu6KEQCAWi6HcDUbeOfBIptF7tcCzusKFjFw2yuvEpDL9wQ==" crossorigin=""/>
+        <!-- CSS -->
+        <style>
+            body{
+                margin:0
+            }
+            #maCarte{
+                height: 100vh;
+            }
+            #dateSelector {
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            padding: 10px;
+            z-index: 400;
+            }
+            #clearMapButton {
+            position: absolute;
+            top: 50px;
+            right: 20px;
+            padding: 10px;
+            z-index: 400;
+            }
+            #distanceField {
+            position: absolute;
+            top: 90px;
+            right: 20px;
+            padding: 10px;
+            z-index: 400;
+            background-color: white;
+            opacity: 0.8;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="maCarte"></div>
+        <select id="dateSelector"><option value="">Select one day</option></select>
+        <button id="clearMapButton">Clear map</button>
+        <span id="distanceField"></span>
+
+        <script src="https://unpkg.com/leaflet@1.5.1/dist/leaflet.js" integrity="sha512-GffPMF3RvMeYyc1LWMHtK8EbPv0iNZ8/oTtHPx9/cc2ILxQ+u905qIwdpULaqDkyBKgOaB57QTMg7ztg8Jm2Og==" crossorigin=""></script>
+        <script>
+            var carte = L.map('maCarte').setView([45.764043, 4.835659], 9);
+
+            var button = document.getElementById('clearMapButton');
+            button.addEventListener('click', clearMap);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', {
+                attribution: 'données © <a href="//osm.org/copyright">OpenStreetMap</a>/ODbL - rendu <a href="//openstreetmap.fr">OSM France</a>',
+                minZoom: 1,
+                maxZoom: 20
+            }).addTo(carte);
+            var LeafIcon = L.Icon.extend({
+                options: {
+                    iconSize:     [25, 25], // size of the icon
+                }
+            });
+            var antennaIcon = new LeafIcon({ iconUrl: 'img/antenna.png' });
+            var carIcon = new LeafIcon({ iconUrl: 'img/car.png' });
+            
+            let relays;
+            let mappingPosRelays = {};
+            var listMarkers = new Array();
+
+
+            function onClick(e){
+                var pointA = new L.LatLng(this.getLatLng()['lat'], this.getLatLng()['lng']);
+                var pointB;
+                let relayName = this.options.alt;
+                let distance = 0;
+                relays.forEach(function(element){
+                    if (element['indicative'] == relayName){
+                        pointB = new L.LatLng(element["lat"], element["lon"]);
+                        distance = pointA.distanceTo(pointB).toFixed(0)/1000;
+                        document.getElementById('distanceField').innerHTML = distance + ' kms';
+                    }
+                })
+
+                var pointList = [pointA, pointB];
+
+                var firstpolyline = new L.Polyline(pointList, {
+                    color: 'red',
+                    weight: 3,
+                    opacity: 0.5,
+                    smoothFactor: 1
+                });
+                firstpolyline.addTo(carte);
+            }
+
+            function clearMap() {
+                console.log('removing the polyline');
+                for(i in carte._layers) {
+                    if(carte._layers[i]._path != undefined) {
+                        try {
+                            carte.removeLayer(carte._layers[i]);
+                        }
+                        catch(e) {
+                            console.log("problem with " + e + carte._layers[i]);
+                        }
+                    }
+                }
+            }
+
+            function removeTripMarkers(){
+                console.log('remove all markers');
+                for(i in listMarkers) {
+                    carte.removeLayer(listMarkers[i]);
+                }  
+            }
+
+            const sb = document.querySelector('#dateSelector')
+            sb.addEventListener('change', function handleChange(e){
+                filename = event.target.value; 
+                removeTripMarkers();
+                clearMap();
+                fetch('json/'+filename+'?'+Math.floor(Math.random()*1000000))
+                    .then(
+                        response => {
+                        if (response.status !== 200) {
+                            console.log('Looks like there was a problem. Status Code: ' +
+                            response.status);
+                            return;
+                        }
+
+                        response.json().then(function(data) {
+                            Object.entries(data).forEach(position => {
+                                let marker = L.marker([position[1].lat, position[1].lon], {icon : carIcon, alt: position[1].listener}).addTo(carte).on('mouseover', onClick);
+                                marker.bindPopup(position[1].time + "Position "+ position[1].id);
+                                listMarkers.push(marker);
+                            })
+                        });
+                        })
+                    .catch(err => console.log('Fetch Error :-S', err));
+            });
+            
+            fetch('json/relays.json?'+Math.floor(Math.random()*1000000))
+                .then(
+                    response => {
+                    if (response.status !== 200) {
+                        console.log('Looks like there was a problem. Status Code: ' +
+                        response.status);
+                        return;
+                    }
+
+                    response.json().then(function(data) {
+                        relays = data;
+                        Object.entries(data).forEach(position => {
+                            let marker = L.marker([position[1].lat, position[1].lon], {icon: antennaIcon});
+                            marker.bindTooltip(position[1].indicative, 
+                            {
+                                permanent: true, 
+                                direction: 'left',
+                                opacity: 0.7
+                            });
+                            marker.addTo(carte);
+                            marker.bindPopup(position[1].indicative);
+                        })
+                    });
+                    })
+                .catch(err => console.log('Fetch Error :-S', err));
+
+            fetch('json/positions.json?'+Math.floor(Math.random()*1000000))
+            .then(
+                response => {
+                    if (response.status !== 200) {
+                        console.log('Looks like there was a problem. Status Code: ' +
+                        response.status);
+                        return;
+                    }
+
+                    response.json().then(function(data) {
+                        data.forEach(function (element){
+                            document.getElementById('dateSelector').innerHTML += '<option value="'+element+'">'+element.substring(0,10)+'</option>'
+                        });
+                    });
+                })
+                .catch(err => console.log('Fetch Error :-S', err));
+            
+        </script>
+    </body>
+</html>
