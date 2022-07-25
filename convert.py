@@ -34,6 +34,11 @@ def getGPSLocation(indicative):
             tmp = re.findall("[0-9]+°[0-9]+.[0-9]+'.?[WESN]", location[0])
             return dms2dec(tmp[0]), dms2dec(tmp[1])
 
+def touchJsonFile(filepath):
+    if not os.path.exists(filepath):
+        f = open(filepath, 'a')
+        f.write(json.dumps([]))
+        f.close()
 
 filename = "file_to_parse.txt"
 jsonFolder = "json/"
@@ -42,6 +47,13 @@ i = 0
 objListener = set()
 day = ''
 filenames= []
+positionJson = jsonFolder+'positions.json'
+relaysJson = jsonFolder+'relays.json'
+
+# checking if positions.json and relays.json are existing, if not creating them
+touchJsonFile(positionJson)
+touchJsonFile(relaysJson)
+
 with open(filename) as file:
     for line in file:
         new = re.findall(r'(.*)CEST: (.*)', line.rstrip())
@@ -83,7 +95,7 @@ print("{0} created".format(fileday))
 
 print("{0} traces added".format(i))
 
-with open(jsonFolder+'positions.json', 'r') as file:
+with open(positionJson, 'r') as file:
     data = file.read().replace('\n', '')
 objFiles = json.loads(data)
 for fileday in objFiles:
@@ -91,11 +103,11 @@ for fileday in objFiles:
         filenames.remove(fileday)
 objFiles.extend(filenames)
 
-f = open(jsonFolder+"positions.json", "w")
+f = open(positionJson, "w")
 f.write(json.dumps(objFiles))
 f.close()
 
-with open(jsonFolder+'relays.json', 'r') as file:
+with open(relaysJson, 'r') as file:
     data = file.read().replace('\n', '')
 
 objRelays = json.loads(data)
@@ -112,7 +124,7 @@ else:
         objRelays.append({"indicative": indicative, "lon": lon, "lat": lat})
         print("Adding relay {0}".format(indicative))
 
-f = open(jsonFolder+"relays.json", "w")
+f = open(relaysJson, "w")
 f.write(json.dumps(objRelays))
 f.close()
 
