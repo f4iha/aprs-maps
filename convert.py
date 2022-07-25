@@ -54,24 +54,31 @@ with open(filename) as file:
             print("{0} created".format(fileday))
             objOutput = []
 
-        aprs_details = aprslib.parse(new[0][1])
-        for k in range(0, len(aprs_details['path'])):
-            if not re.match('WIDE', aprs_details['path'][k]) and not re.match('qAR', aprs_details['path'][k]):
-                listener = aprs_details['path'][k].split('*')
-                break
-        
-        objOutput.append({
-            "id":i, 
-            "lat":aprs_details['latitude'], 
-            "lon":aprs_details['longitude'], 
-            "listener":listener[0],
-            "symbol": aprs_details['symbol'],
-            "symbol_table": aprs_details['symbol_table'],
-            "time": new[0][0]
-        })
-        objListener.add(listener[0])
-        i = i+1
-        day = new[0][0][0:10]
+        aprs_details = None
+        try:
+            aprs_details = aprslib.parse(new[0][1])
+        except aprslib.exceptions.ParseError as e:
+            print(f"Error: {e.message}")
+            print(f"On Line: {new[0][1]}")
+
+        if aprs_details:
+            for k in range(0, len(aprs_details['path'])):
+                if not re.match('WIDE', aprs_details['path'][k]) and not re.match('qAR', aprs_details['path'][k]):
+                    listener = aprs_details['path'][k].split('*')
+                    break
+            
+            objOutput.append({
+                "id":i, 
+                "lat":aprs_details['latitude'], 
+                "lon":aprs_details['longitude'], 
+                "listener":listener[0],
+                "symbol": aprs_details['symbol'],
+                "symbol_table": aprs_details['symbol_table'],
+                "time": new[0][0]
+            })
+            objListener.add(listener[0])
+            i = i+1
+            day = new[0][0][0:10]
 
 fileday = "{0}.json".format(day)
 filenames.append(fileday)
