@@ -56,7 +56,7 @@ touchJsonFile(relaysJson)
 
 with open(filename) as file:
     for line in file:
-        new = re.findall(r'(.*)CEST: (.*)', line.rstrip())
+        new = re.findall(r'(.*)CES?T: (.*)', line.rstrip())
         if day != '' and day != new[0][0][0:10]:
             fileday = "{0}.json".format(day)
             filenames.append(fileday)
