@@ -176,6 +176,7 @@
                     }
 
                     response.json().then(function(data) {
+			data.reverse();
                         data.forEach(function (element){
                             document.getElementById('dateSelector').innerHTML += '<option value="'+element+'">'+element.substring(0,10)+'</option>'
                         });
